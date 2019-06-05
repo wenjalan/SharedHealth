@@ -1,0 +1,9 @@
+name: SharedHealth
+version: 1.0
+author: wenjalan
+main: wenjalan.SharedHealth
+api-version: 1.14
+commands:
+  sethealthbonusperplayer:
+    description: The amount of health to add to the pool per player (default 10)
+    usage: /setheathbonusperplayer [amount]
