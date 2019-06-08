@@ -33,20 +33,14 @@ public class SharedHealthListener implements Listener {
             // get the amount of damage taken
             double damageTaken = e.getFinalDamage();
 
-            // deal that much damage to everyone else
-            for (Player otherPlayer : Bukkit.getOnlinePlayers()) {
-                // if this player isn't the player that took damage
-                if (otherPlayer.getUniqueId() != p.getUniqueId()) {
-                    // damage them
-                    otherPlayer.damage(damageTaken);
-                }
-            }
-
             // set new health values
             SharedHealth.current_health = p.getHealth();
 
-            // ensure sync
-            syncPlayers();
+            // set damage to 0
+            e.setDamage(0.0D);
+
+            // set everyone's health to this guy's health
+            setPlayersHealth(p.getHealth() - damageTaken);
         }
     }
 
@@ -67,21 +61,14 @@ public class SharedHealthListener implements Listener {
             // get the amount healed
             double damageHealed = e.getAmount();
 
-            // heal everyone else by that much
-            // deal that much damage to everyone else
-            for (Player otherPlayer : Bukkit.getOnlinePlayers()) {
-                // if this player isn't the player that took damage
-                if (otherPlayer.getUniqueId() != p.getUniqueId()) {
-                    // heal them
-                    otherPlayer.setHealth(otherPlayer.getHealth() + damageHealed);
-                }
-            }
-
             // set new health values
             SharedHealth.current_health = p.getHealth();
 
-            // ensure sync
-            syncPlayers();
+            // set heal to 0
+            e.setAmount(0.0D);
+
+            // set everyone's health to this guy's health
+            setPlayersHealth(p.getHealth() + damageHealed);
         }
     }
 
@@ -96,7 +83,7 @@ public class SharedHealthListener implements Listener {
         SharedHealth.max_health = SharedHealth.health_bonus_per_player * playersOnline;
 
         // ensure sync
-        syncPlayers();
+        // syncPlayers();
     }
 
     // when a player leaves, set everyone's health
@@ -109,8 +96,19 @@ public class SharedHealthListener implements Listener {
         // set the max health
         SharedHealth.max_health = SharedHealth.health_bonus_per_player * playersOnline;
 
+        // check that all the players don't have health over the max
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            // for survival players
+            if (p.getGameMode().equals(GameMode.SURVIVAL)) {
+                // if their health is above the max, set it to the max
+                if (p.getHealth() > SharedHealth.max_health) {
+                    p.setHealth(SharedHealth.max_health);
+                }
+            }
+        }
+
         // ensure sync
-        syncPlayers();
+        // syncPlayers();
     }
 
     // when a player dies, kill everyone else
@@ -129,7 +127,7 @@ public class SharedHealthListener implements Listener {
         }
 
         // send a message
-        e.setDeathMessage(culprit.getDisplayName() + " died, causing everyone else to die");
+        // e.setDeathMessage(culprit.getDisplayName() + " died, causing everyone else to die");
     }
 
     // when someone respawns, stop killing everyone
@@ -139,7 +137,7 @@ public class SharedHealthListener implements Listener {
         Player respawnee = e.getPlayer();
 
         // set their values for everyone else
-        SharedHealth.current_health = respawnee.getHealth();
+        SharedHealth.current_health = SharedHealth.max_health;
 
         // don't sync to avoid resurrection issues
         // syncPlayers();
@@ -162,6 +160,30 @@ public class SharedHealthListener implements Listener {
             if (p.getHealth() != SharedHealth.current_health) {
                 // set their current health to the current
                 p.setHealth(SharedHealth.current_health);
+            }
+        }
+    }
+
+    // sets all the players' health to a certain value
+    public static void setPlayersHealth(double amount) {
+        // if negative, set to 0
+        if (amount < 0.0) {
+            amount = 0.0D;
+        }
+        // if more than the max, set to the max
+        else if (amount > SharedHealth.max_health) {
+            amount = SharedHealth.max_health;
+        }
+
+        // announce
+        // Bukkit.getServer().broadcastMessage("Setting everyone to " + amount);
+
+        // for all players
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            // if they're in survival, set their health
+            if (p.getGameMode().equals(GameMode.SURVIVAL)) {
+                // set their health
+                p.setHealth(amount);
             }
         }
     }
